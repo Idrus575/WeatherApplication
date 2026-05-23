@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Weather Clone</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+
+<!-- Landing Page -->
+<div id="landing-page" class="landing-page">
+<div class="landing-content">
+<h1 class="landing-title">Weather Explorer</h1>
+<p class="landing-subtitle">Discover live global weather reports</p>
+<button id="enter-btn" class="landing-btn">Find Weather</button>
+</div>
+</div>
+
+<div class="app-wrapper hidden" id="main-app">
+<h1 class="app-title">Weather</h1>
+
+<!-- Controls Row -->
+<div class="controls-row">
+<button class="icon-btn" id="location-btn" title="Use My Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+
+<!-- Calendar Option Button -->
+<div class="calendar-wrapper">
+<button class="nav-btn" style="padding: 8px 15px; font-size: 0.95rem; border-radius: 20px;" onclick="document.getElementById('date-picker').showPicker()">
+<i class="fa-regular fa-calendar-days"></i> Select Date
+</button>
+<input type="date" id="date-picker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" title="Filter forecast by date">
+</div>
+
+<div class="unit-toggle">
+<span id="label-c" class="active">°C</span>
+<label class="switch">
+<input type="checkbox" id="unit-checkbox">
+<span class="slider round"></span>
+</label>
+<span id="label-f">°F</span>
+</div>
+</div>
+
+<div class="search-box">
+<input type="text" id="city" placeholder="Search for a city..." autocomplete="off">
+<button onclick="getWeather()"><i class="fa-solid fa-magnifying-glass"></i></button>
+</div>
+
+<!-- Loading Spinner Overlay -->
+<div id="loading" class="loading-overlay hidden">
+<div class="spinner"></div>
+</div>
+
+<!-- Autocorrect Suggestion -->
+<div id="spell-check" class="spell-check"></div>
+
+<!-- Recent Searches -->
+<div class="marquee-container" id="marquee-container">
+<div class="recent-cities" id="recent-cities"></div>
+</div>
+
+<!-- Main Dashboard Container -->
+<div id="dashboard" class="dashboard hidden">
+
+<!-- View 1: Overview -->
+<div id="overview-view" class="dashboard-grid">
+
+<!-- Main Current Weather Card -->
+<div class="glow-card main-weather">
+<div class="glow-effect"></div>
+<div class="card-content">
+<div class="top-row">
+<div class="now-text">Now</div>
+<div class="desc-text" id="current-desc">Partly sunny</div>
+</div>
+<div class="main-temp-row">
+<div class="main-temp" id="current-temp">26°</div>
+<img id="current-icon" src="" alt="Weather" class="main-icon">
+</div>
+<div class="feels-like">Feels like <span id="feels-like">27°</span></div>
+
+<!-- Hourly Forecast inside main card -->
+<div class="hourly-forecast" id="hourly-forecast"></div>
+</div>
+</div>
+
+<!-- Timeline Yesterday/Today/Tomorrow -->
+<div class="timeline-container glow-card">
+<div class="glow-effect"></div>
+<div class="card-content timeline-grid">
+<div class="timeline-box" id="timeline-yesterday">
+<div class="tl-title">Yesterday</div>
+<div class="tl-temp" id="tl-temp-yest">--</div>
+<img class="fc-icon" id="tl-icon-yest" src="">
+<div class="tl-extra" id="tl-extra-yest"></div>
+</div>
+<div class="timeline-box active" id="timeline-today">
+<div class="tl-title">Today</div>
+<div class="tl-temp" id="tl-temp-today">--</div>
+<img class="fc-icon" id="tl-icon-today" src="">
+<div class="tl-extra" id="tl-extra-today"></div>
+</div>
+<div class="timeline-box" id="timeline-tomorrow">
+<div class="tl-title">Tomorrow</div>
+<div class="tl-temp" id="tl-temp-tomm">--</div>
+<img class="fc-icon" id="tl-icon-tomm" src="">
+<div class="tl-extra" id="tl-extra-tomm"></div>
+</div>
+</div>
+</div>
+
+<!-- Daily Forecast Cards -->
+<div class="daily-forecast" id="daily-forecast"></div>
+
+<button id="view-more-btn" class="nav-btn glow-card">View more details <i class="fa-solid fa-arrow-right"></i></button>
+</div> <!-- End Overview View -->
+
+<!-- View 2: Additional Data -->
+<div id="additional-view" class="additional-grid hidden">
+<div class="details-header">
+<h2>Today's Weather Details</h2>
+</div>
+
+<!-- Details List Cards -->
+<div class="details-list">
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content" style="justify-content: space-between;">
+<div style="display:flex; align-items:center;">
+<div class="detail-icon"><i class="fa-solid fa-cloud-showers-heavy"></i></div>
+<div class="detail-info">Precipitation <span class="dot">•</span> <span id="detail-precip">0 mm</span></div>
+</div>
+<div class="detail-extra" style="text-align: right; color: var(--text-secondary); font-size: 0.95rem;">
+Clouds: <span id="detail-clouds">0%</span><br>Vis: <span id="detail-visibility">0 km</span>
+</div>
+</div>
+</div>
+
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content" style="justify-content: space-between;">
+<div style="display:flex; align-items:center;">
+<div class="detail-icon"><i class="fa-solid fa-wind"></i></div>
+<div class="detail-info">Wind <span class="dot">•</span> <span id="detail-wind">5 km/h</span></div>
+</div>
+<div class="detail-extra" style="text-align: right; color: var(--text-secondary); font-size: 0.95rem;">
+Feels Like: <span id="detail-feelslike-ext">27°</span>
+</div>
+</div>
+</div>
+
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content" style="justify-content: space-between;">
+<div style="display:flex; align-items:center;">
+<div class="detail-icon"><i class="fa-solid fa-droplet"></i></div>
+<div class="detail-info">Humidity <span class="dot">•</span> <span id="detail-humidity">56%</span></div>
+</div>
+<div class="detail-extra" style="text-align: right; color: var(--text-secondary); font-size: 0.95rem;">
+Dew Point unavailable
+</div>
+</div>
+</div>
+
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content" style="justify-content: space-between;">
+<div style="display:flex; align-items:center;">
+<div class="detail-icon"><i class="fa-solid fa-water"></i></div>
+<div class="detail-info">Air quality <span class="dot">•</span> <span id="detail-aqi">Good</span></div>
+</div>
+<div class="detail-extra" style="text-align: right; color: var(--text-secondary); font-size: 0.95rem;">
+UV Index deprecated
+</div>
+</div>
+</div>
+
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content">
+<div class="detail-icon"><i class="fa-solid fa-gauge-high"></i></div>
+<div class="detail-info">Pressure <span class="dot">•</span> <span id="detail-pressure">1012 hPa</span></div>
+</div>
+</div>
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content">
+<div class="detail-icon" style="color:#ffb703"><i class="fa-solid fa-sun"></i></div>
+<div class="detail-info">Sunrise <span class="dot">•</span> <span id="detail-sunrise">06:00 AM</span></div>
+</div>
+</div>
+<div class="detail-row glow-card">
+<div class="glow-effect"></div>
+<div class="card-content detail-content">
+<div class="detail-icon" style="color:#fb8500"><i class="fa-solid fa-moon"></i></div>
+<div class="detail-info">Sunset <span class="dot">•</span> <span id="detail-sunset">06:00 PM</span></div>
+</div>
+</div>
+</div>
+
+<!-- Interactive Map Card -->
+<div class="glow-card map-card">
+<div class="glow-effect"></div>
+<div class="card-content" style="padding: 10px;">
+<div style="padding-bottom:10px; font-weight:500;">Observe Weather (Map)</div>
+<div id="weather-map" style="height: 200px; border-radius: 15px; z-index: 1;"></div>
+</div>
+</div>
+</div> <!-- End Details grid content -->
+
+<button id="back-btn" class="nav-btn glow-card"><i class="fa-solid fa-arrow-left"></i> Back</button>
+</div> <!-- End Additional View -->
+</div> <!-- End Dashboard -->
+
+</div> <!-- End App Wrapper -->
+
+<!-- Social Dock -->
+<div class="social-dock">
+<a href="https://instagram.com" target="_blank" class="social-icon" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+<a href="https://twitter.com" target="_blank" class="social-icon" title="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+<a href="https://facebook.com" target="_blank" class="social-icon" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+<a href="mailto:weather@gov.in" class="social-icon" title="Contact Government Authorities"><i class="fa-solid fa-building-shield"></i></a>
+</div>
+
+<script src="script.js?v=2"></script>
+</body>
+
+</html>
